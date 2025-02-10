@@ -1,51 +1,34 @@
-// Function to log in the user and store the JWT token
-function loginUser(email, password) {
-    console.log("Attempting to log in with email:", email);  // Debugging
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('sendLocation').style.display = "block";  // Always show "Share My Location"
+});
 
-    fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.token) {
-            localStorage.setItem('jwtToken', data.token);  // Store the token
-            document.getElementById('status').textContent = "Login successful!";
-            console.log('JWT Token:', data.token);
+// Function to send location to the backend
+function shareLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
 
-            // Show the "Share My Location" button
-            document.getElementById('sendLocation').style.display = "block";
-        } else {
-            document.getElementById('status').textContent = "Login failed. Please check your credentials.";
-        }
-    })
-    .catch(error => {
-        document.getElementById('status').textContent = "Error logging in.";
-        console.error('Error:', error);
-    });
+            // Send location to the backend
+            fetch('https://public-tracker-backend.onrender.com/api/submit-location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ latitude, longitude })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('status').textContent = data.message;
+            })
+            .catch(error => {
+                document.getElementById('status').textContent = "Failed to submit location.";
+                console.error('Error:', error);
+            });
+        });
+    } else {
+        document.getElementById('status').textContent = "Geolocation is not supported by this browser.";
+    }
 }
 
-// Attach the event listener to the form submission
-document.getElementById('loginForm').addEventListener('submit', function(event) {
-    event.preventDefault();  // Prevent form from reloading the page
+document.getElementById('sendLocation').addEventListener('click', shareLocation);
 
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    loginUser(email, password);
-});
-
-// Check token on page load to show/hide the "Share My Location" button
-document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('jwtToken');
-
-    // Ensure token exists and show the button if true
-    if (token) {
-        document.getElementById('sendLocation').style.display = "block";  // Only show if token exists
-    } else {
-        document.getElementById('sendLocation').style.display = "none";  // Hide if no token is found
-    }
-});

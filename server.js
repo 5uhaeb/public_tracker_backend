@@ -9,12 +9,11 @@ app.use(express.json());
 app.use(cors());
 app.use(requestIp.mw());  // Middleware to capture IP addresses
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Failed to connect to MongoDB:', err));
+// Connect to MongoDB using .env variable
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('Failed to connect to MongoDB:', err));
+
 
 // Location Schema
 const LocationSchema = new mongoose.Schema({
