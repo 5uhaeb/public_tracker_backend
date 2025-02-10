@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beacon Finder - Food Truck Locator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: 'Arial, sans-serif';
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: linear-gradient(90deg, #0077b6, #00b4d8);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        #map {
+            height: 500px;
+            width: 90%;
+            margin: 20px auto;
+            border-radius: 10px;
+            border: 2px solid #0077b6;
+        }
+
+        #submitLocation {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 25px;
+            font-size: 1rem;
+            color: white;
+            background-color: #0077b6;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #submitLocation:hover {
+            background-color: #005f87;
+        }
+
+        #status {
+            text-align: center;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #0077b6;
+            color: white;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Beacon Finder for Food Trucks</h1>
+        <p>Help us locate the most popular gathering spots by sharing your location!</p>
+    </header>
+
+    <div id="map"></div>
+
+    <button id="submitLocation">Share My Location</button>
+
+    <p id="status"></p>
+
+    <footer>
+        <p>Powered by Beacon Finder &copy; 2025</p>
+    </footer>
+
+    <script>
+        const map = L.map('map').setView([40.7128, -74.0060], 12);  // Default to New York City
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Function to handle location submission
+        document.getElementById('submitLocation').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+
+                    // Show marker on the map
+                    L.marker([latitude, longitude]).addTo(map)
+                        .bindPopup('Your Location')
+                        .openPopup();
+
+                    // Send location to the backend
+                    fetch('http://localhost:5000/api/submit-location', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ latitude, longitude })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('status').textContent = data.message;
+                        document.getElementById('status').className = 'success';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('status').textContent = 'Failed to submit location.';
+                        document.getElementById('status').className = 'error';
+                    });
+                }, () => {
+                    document.getElementById('status').textContent = 'Failed to get location.';
+                    document.getElementById('status').className = 'error';
+                });
+            } else {
+                document.getElementById('status').textContent = 'Geolocation is not supported by this browser.';
+                document.getElementById('status').className = 'error';
+            }
+        });
+
+        // Fetch existing locations and display them as markers on the map
+        fetch('http://localhost:5000/api/locations')
+            .then(response => response.json())
+            .then(locations => {
+                locations.forEach(location => {
+                    L.marker([location.latitude, location.longitude]).addTo(map)
+                        .bindPopup(`Submitted from IP: ${location.ip}`)
+                        .openPopup();
+                });
+            })
+            .catch(error => console.error('Error fetching locations:', error));
+    </script>
+
+</body>
+</html>
+
+
+
+
